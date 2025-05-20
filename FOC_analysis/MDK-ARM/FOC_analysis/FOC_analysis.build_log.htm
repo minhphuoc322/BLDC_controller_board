@@ -21,17 +21,34 @@ Target DLL:      STLink\ST-LINKIII-KEIL_SWO.dll V3.0.7.0
 Dialog DLL:      TCM.DLL V1.46.0.0
  
 <h2>Project:</h2>
-D:\1.final\code_C\FOC_analysis\MDK-ARM\FOC_analysis.uvprojx
-Project File Date:  05/06/2025
+D:\1.final\BLDC_controller_board\FOC_analysis\MDK-ARM\FOC_analysis.uvprojx
+Project File Date:  05/15/2025
 
 <h2>Output:</h2>
 *** Using Compiler 'V5.06 update 6 (build 750)', folder: 'D:\Keicl\ARM\ARMCC\Bin'
 Build target 'FOC_analysis'
+compiling stm32g4xx_hal_msp.c...
+.\FOC\foc_cal.h(19): warning:  #1-D: last line of file ends without a newline
+  #endif
+../Core/Src/stm32g4xx_hal_msp.c: 1 warning, 0 errors
+compiling stm32g4xx_it.c...
+.\FOC\foc_cal.h(19): warning:  #1-D: last line of file ends without a newline
+  #endif
+../Core/Src/stm32g4xx_it.c: 1 warning, 0 errors
+compiling foc_cal.c...
+FOC\foc_cal.h(19): warning:  #1-D: last line of file ends without a newline
+  #endif
+FOC\foc_cal.c(86): warning:  #1-D: last line of file ends without a newline
+  }
+FOC\foc_cal.c: 2 warnings, 0 errors
 compiling main.c...
+.\FOC\foc_cal.h(19): warning:  #1-D: last line of file ends without a newline
+  #endif
+../Core/Src/main.c: 1 warning, 0 errors
 linking...
 Program Size: Code=7438 RO-data=522 RW-data=16 ZI-data=1960  
 FromELF: creating hex file...
-"FOC_analysis\FOC_analysis.axf" - 0 Error(s), 0 Warning(s).
+"FOC_analysis\FOC_analysis.axf" - 0 Error(s), 5 Warning(s).
 
 <h2>Software Packages used:</h2>
 
@@ -55,7 +72,7 @@ Package Vendor: Keil
 
    * Component: ARM::CMSIS:CORE:5.4.0
       Include file:  CMSIS\Core\Include\tz_context.h
-Build Time Elapsed:  00:00:03
+Build Time Elapsed:  00:00:04
 </pre>
 </body>
 </html>
