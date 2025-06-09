@@ -28,7 +28,11 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32g4xx_hal.h"
-
+#include "string.h"
+#include "stdio.h" 
+#include "stdlib.h"
+#include "stdbool.h"
+#include "math.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 

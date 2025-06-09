@@ -18,11 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "string.h"
-#include "stdio.h" 
-#include "stdlib.h"
-#include "stdbool.h"
-#include "math.h"
+#include "foc_cal.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -37,7 +33,7 @@
 /* USER CODE BEGIN PD */
 /* USER CODE END PD */
 float id,iq, theta;
-float va,vb,vc;
+float ia,ib,ic;
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 
@@ -62,118 +58,26 @@ static void MX_TIM1_Init(void);
 static void MX_TIM8_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
+void process(float ia, float ib, float ic, float theta, float *id, float *iq,float v_ref,float fb)
+{
+    float v, v_d, v_q;
+    float va, vb, vc;
+
+    iabc_2_idq(ia, ib, ic, theta, id, iq);
+
+    v = PI_controller(v_ref, fb, 0.9, 1.2, 0.000005);
+    v_d = PI_controller(0, *id, 0.72, 0.85, 0.000005);
+    v_q = PI_controller(v, *iq, 0.72, 0.85, 0.000005);
+
+    idq_2_iabc(theta, v_d, v_q, &va, &vb, &vc);
+
+    pwm(va, vb, vc);
+}
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-//---------------------------------------------------------Ham tinh idq
-void iabc_2_idq(float ia_,float ib_,float ic_,float theta_) 
-{
-	//clark iabc to ialpha_beta
-	float i_alpha = (2/3) * ( ia_ - (ib_ + ic_)/2);
-	float i_beta = (2/3) * ((sqrt(3)/2)*ib_ - (sqrt(3)/2)*ic_ );
-	// park iab to idq
-	id = i_alpha*sinf(theta_) - i_beta*cosf(theta_);
-	iq = i_alpha*cosf(theta_) + i_beta*sinf(theta_);
-}
-
-//---------------------------------------------------------Ngat timer 5ms TIMER2 tinh van toc va vi tri
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {	
-	if(htim->Instance==TIM2)	
-	{
-
-	}
-}
-
-//---------------------------------------------------------PI van toc, id, iq
-float PI_controller(float ref, float fb, float kp, float ki, float sampletime)
-{
-	float err = 0;
-	float up,ui,out;
-	float ui_p = 0; // chú ý
-	
-	err = ref - fb;
-	up = kp * err;
-	ui = ui_p + ki * err * sampletime;
-	out = (up + ui);
-	return out;
-}
-
-//---------------------------------------------------------tinh vabc
-void idq_2_iabc(float theta_,float vd_,float vq_) 
-{
-	//park idq to ialpha_beta
-	float v_alpha =  vd_*sinf(theta_) + vq_*cosf(theta_);
-	float v_beta  = -vd_*cosf(theta_) + vq_*sinf(theta_);
-	// clark iab to iabc
-	va = v_alpha; 
-	vb = (-1/2)*v_alpha + (sqrt(3)/2)*v_beta;
-	vc = (-1/2)*v_alpha - (sqrt(3)/2)*v_beta;
-}
-
-//---------------------------------------------------------tinh PWM tu vabc
-void pwm (float Va, float Vb, float Vc){
-	//scale gia tri ve 0-1
-	float VDC = 24;
-	float PWM_MAX = 100;
-	float duty_a = (Va / VDC) + 0.5f;
-  float duty_b = (Vb / VDC) + 0.5f;
-  float duty_c = (Vc / VDC) + 0.5f;
-  // Kiem tra co vot lo hay khong
-  if (duty_a > 1.0f) duty_a = 1.0f;
-  if (duty_a < 0.0f) duty_a = 0.0f;
-  if (duty_b > 1.0f) duty_b = 1.0f;
-  if (duty_b < 0.0f) duty_b = 0.0f;
-  if (duty_c > 1.0f) duty_c = 1.0f;
-  if (duty_c < 0.0f) duty_c = 0.0f;
-
-   // Gán giá tr? CCR (duty cycle) cho 3 pha
-   __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, (uint16_t)(duty_a * PWM_MAX));  // Phase A
-   __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, (uint16_t)(duty_b * PWM_MAX));  // Phase B
-   __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, (uint16_t)(duty_c * PWM_MAX));  // Phase C
-}
-
-//---------------------------------------------------------SVPWM
-void svpwm (float V_alpha, float V_beta){
-	float M_PI = 3.14;
-	float pwm_max = 100;
-	// Su ly du lieu dau vao
-	float v_ref = sqrt(V_alpha*V_alpha + V_beta*V_beta);
-	float angle = atan2f(V_beta, V_alpha); 
-	// Su ly sector va goc
-	float angle_deg = angle * 180.0f / M_PI;  
-	if(angle_deg < 0) angle_deg += 360.0f;    
-	int sector = (int)(angle_deg / 60.0f) + 1; 
-	// Tinh T012
-	float T_s = 1.0f / 6666.66f; // 20 kHz
-	float Vdc = 24.0f;
-		
-	float Vmax = Vdc / sqrtf(3.0f);  // Bien do toi da SVPWM
-	float Vnorm = v_ref / Vmax;       // Bien do dã chuan hóa (0 - 1)
-	float T1 = T_s * Vnorm * sinf((M_PI / 3.0f) - fmodf(angle, M_PI / 3.0f));
-	float T2 = T_s * Vnorm * sinf(fmodf(angle, M_PI / 3.0f));
-	float T0 = T_s - T1 - T2;  // Zero vector time
-	//Tính pwm
-	float Ta = (T1 + T2 + T0/2.0f) / T_s;
-	float Tb = (T2 + T0/2.0f) / T_s;
-	float Tc = (T0/2.0f) / T_s;
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, Ta * pwm_max);
-	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, Tb * pwm_max);
-	__HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, Tc * pwm_max);
-
-}
-
-//---------------------------------------------------------SPI
-
-
-
-
-
-
-
-
 
 /* USER CODE END 0 */
 
